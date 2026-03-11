@@ -2,49 +2,47 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>OMNIX ERP | Hyper Performance</title>
+    <title>OMNIX ERP | Executive Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        :root { --bg: #050505; --card: #0d0d0d; --border: #1a1a1a; --success: #00ff88; --danger: #ff3366; --warning: #ffcc00; }
+        :root { 
+            --bg: #050505; --card: #0d0d0d; --border: #1a1a1a; 
+            --success: #00ff88; --danger: #ff3366; --warning: #ffcc00; --info: #00d4ff;
+        }
         * { box-sizing: border-box; }
         body { background: var(--bg); color: #ccc; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Navigation Sidebar */
+        /* Sidebar */
         .sidebar { width: 260px; background: #000; border-left: 1px solid var(--border); padding: 30px 15px; display: flex; flex-direction: column; gap: 5px; }
-        .logo { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 40px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logo { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 40px; text-align: center; letter-spacing: 1px; }
         .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; color: #666; transition: 0.2s; font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .nav-item:hover, .nav-item.active { background: #111; color: #fff; border-right: 3px solid var(--success); }
 
-        /* Main Viewport */
+        /* Viewport */
         .main { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.3s ease; }
 
-        /* Stats Bar */
+        /* Stats Cards */
         .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .s-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 10px; text-align: center; }
         .s-val { font-size: 20px; font-weight: bold; color: #fff; margin-top: 5px; }
 
-        /* Table */
-        .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #0a0a0a; padding: 12px; text-align: right; color: #555; font-size: 11px; }
-        td { padding: 12px; border-bottom: 1px solid #141414; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        
-        /* Pagination */
-        .pager { padding: 10px; background: #0a0a0a; display: flex; justify-content: center; gap: 15px; align-items: center; border-top: 1px solid var(--border); }
-        .p-btn { background: #1a1a1a; color: #fff; border: 1px solid var(--border); padding: 5px 15px; border-radius: 4px; cursor: pointer; }
-        .p-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        /* Forms & Inputs */
-        input, select, textarea { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; width: 100%; margin: 8px 0; border-radius: 6px; font-family: inherit; }
-        .btn-main { background: var(--success); color: #000; font-weight: bold; border: none; padding: 15px; width: 100%; border-radius: 6px; cursor: pointer; }
-        label { font-size: 12px; color: #666; display: block; margin-top: 10px; }
+        /* Professional Table */
+        .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #0a0a0a; padding: 15px; text-align: right; color: #555; font-size: 11px; text-transform: uppercase; }
+        td { padding: 12px 15px; border-bottom: 1px solid #141414; font-size: 13px; }
+        .status-pill { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
 
         /* Modal */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; }
-        .modal-box { background: var(--card); width: 400px; margin: 60px auto; padding: 25px; border-radius: 12px; border: 1px solid var(--border); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; }
+        .modal-box { background: var(--card); width: 420px; margin: 50px auto; padding: 30px; border-radius: 12px; border: 1px solid var(--border); }
+        
+        input, select, textarea { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; width: 100%; margin: 8px 0; border-radius: 6px; }
+        .btn-main { background: var(--success); color: #000; font-weight: bold; border: none; padding: 15px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 15px; }
+        label { font-size: 11px; color: #555; display: block; margin-top: 10px; text-transform: uppercase; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -55,9 +53,9 @@
     <div class="logo" id="main-logo">OMNIX ERP</div>
     <div class="nav-item active" onclick="setTab('all', this)">📋 كافة المفاتيح</div>
     <div class="nav-item" onclick="setTab('active', this)">✅ المفاتيح النشطة</div>
-    <div class="nav-item" onclick="setTab('available', this)">🆕 المتاحة للبيع</div>
+    <div class="nav-item" onclick="setTab('blocked', this)">🚫 المحظورة</div>
     <div class="nav-item" onclick="setTab('finance', this)">💰 السجل المالي</div>
-    <div class="nav-item" onclick="setTab('settings', this)">⚙️ إعدادات النظام</div>
+    <div class="nav-item" onclick="setTab('settings', this)">⚙️ الإعدادات</div>
 </div>
 
 <div class="main">
@@ -72,15 +70,16 @@
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th width="40%">المفتاح السلسلي</th><th width="20%">العميل</th><th width="15%">المتبقي</th><th width="15%">الحالة</th><th width="10%">⚙️</th></tr>
+                    <tr>
+                        <th width="30%">المفتاح السلسلي</th>
+                        <th width="20%">العميل</th>
+                        <th width="15%">المتبقي (أيام)</th>
+                        <th width="15%">الحالة</th>
+                        <th width="10%">⚙️</th>
+                    </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
-            <div class="pager">
-                <button class="p-btn" id="prevBtn" onclick="changePage(-1)">السابق</button>
-                <span id="pageInfo">صفحة 1</span>
-                <button class="p-btn" id="nextBtn" onclick="changePage(1)">التالي</button>
-            </div>
         </div>
     </div>
 
@@ -89,39 +88,27 @@
         <div class="stats-row">
             <div class="s-card">إجمالي المبيعات<div class="s-val" id="f-sales">0</div></div>
             <div class="s-card">الواصل نقداً<div class="s-val" id="f-paid">0</div></div>
-            <div class="s-card">الديون في السوق<div class="s-val" id="f-debt-total" style="color:var(--danger)">0</div></div>
-        </div>
-    </div>
-
-    <div id="section-settings" class="section">
-        <h2>⚙️ إعدادات النظام والهوية</h2>
-        <div style="background:var(--card); padding:25px; border-radius:12px; border:1px solid var(--border); max-width:600px;">
-            <label>اسم الشركة/المؤسسة</label>
-            <input type="text" id="set-company-name" placeholder="مثلاً: شركة أومنيكس">
-            <label>رابط شعار الشركة (URL)</label>
-            <input type="text" id="set-logo-url" placeholder="https://...">
-            <label>تذييل الفاتورة</label>
-            <textarea id="set-invoice-footer" rows="4"></textarea>
-            <button class="btn-main" onclick="saveSystemSettings()">💾 حفظ الإعدادات</button>
+            <div class="s-card">الديون<div class="s-val" id="f-debt-total" style="color:var(--danger)">0</div></div>
         </div>
     </div>
 </div>
 
 <div id="editModal" class="modal">
     <div class="modal-box">
-        <h3>تحديث بيانات المفتاح</h3>
+        <h3>تحديث بيانات النظام</h3>
         <input type="hidden" id="f-key">
         <label>اسم العميل</label><input type="text" id="f-name">
+        <label>تاريخ انتهاء الاشتراك</label><input type="date" id="f-expiry">
         <label>السعر الكلي (IQD)</label><input type="number" id="f-price">
         <label>الواصل (IQD)</label><input type="number" id="f-paid">
-        <label>الحالة</label>
+        <label>حالة التفعيل</label>
         <select id="f-status">
             <option value="AVAILABLE">متوفر للبيع</option>
-            <option value="ACTIVE">نشط</option>
-            <option value="BLOCKED">محظور</option>
+            <option value="ACTIVE">نشط (Active)</option>
+            <option value="BLOCKED">محظور (Suspended)</option>
         </select>
-        <button class="btn-main" onclick="saveKeyData()">تحديث الآن</button>
-        <button onclick="document.getElementById('editModal').style.display='none'" style="background:transparent; color:#555; border:none; width:100%; margin-top:10px; cursor:pointer;">إلغاء</button>
+        <button class="btn-main" onclick="saveKeyData()">حفظ التغييرات</button>
+        <button onclick="closeModal()" style="background:transparent; color:#555; border:none; width:100%; margin-top:10px; cursor:pointer;">إلغاء</button>
     </div>
 </div>
 
@@ -135,12 +122,14 @@
     const db = firebase.database();
 
     let rawData = [];
-    let filteredData = [];
-    let currentPage = 1;
-    const pageSize = 15; // عدد الصفوف للسرعة القصوى
     let currentFilter = 'all';
 
-    // 1. تحميل كافة البيانات وتحديث الإحصائيات
+    function calculateDays(expiryDate) {
+        if (!expiryDate) return 0;
+        const diff = new Date(expiryDate) - new Date();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+
     function loadAllData() {
         db.ref('keys').on('value', (snap) => {
             const data = snap.val();
@@ -150,95 +139,55 @@
             for (let key in data) {
                 let info = data[key];
                 let isObj = (typeof info === 'object');
-                let status = isObj ? (info.status || 'ACTIVE') : 'AVAILABLE';
+                
+                let status = isObj ? (info.status || 'AVAILABLE') : 'AVAILABLE';
                 let price = isObj ? (parseInt(info.total_price) || 0) : 0;
                 let paid = isObj ? (parseInt(info.paid_amount) || 0) : 0;
-                let remain = price - paid;
+                let expiry = isObj ? info.expiryDate : null;
 
                 s.total++;
                 if(status === 'ACTIVE') s.active++;
                 if(status === 'AVAILABLE') s.avail++;
-                s.debt += remain; s.sales += price; s.paid += paid;
+                s.sales += price; s.paid += paid; s.debt += (price - paid);
 
-                rawData.push({ key, name: isObj ? info.name : 'متوفر للبيع', status, remain, price, paid });
+                rawData.push({ 
+                    key, 
+                    name: isObj ? info.name : 'متوفر للبيع', 
+                    status, 
+                    daysLeft: calculateDays(expiry),
+                    expiry,
+                    price, 
+                    paid,
+                    remain: price - paid 
+                });
             }
             updateUI(s);
-            applyFilter();
+            renderTable();
         });
-    }
-
-    // 2. التحكم في الأقسام (Tabs)
-    function setTab(tab, el) {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
-        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-
-        if(tab === 'finance') {
-            document.getElementById('section-finance').classList.add('active');
-        } else if(tab === 'settings') {
-            document.getElementById('section-settings').classList.add('active');
-        } else {
-            document.getElementById('section-data').classList.add('active');
-            currentFilter = tab;
-            applyFilter();
-        }
-    }
-
-    function applyFilter() {
-        if (currentFilter === 'all') filteredData = rawData;
-        else filteredData = rawData.filter(d => d.status.toLowerCase() === currentFilter);
-        currentPage = 1;
-        renderTable();
     }
 
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        const start = (currentPage - 1) * pageSize;
-        const pageData = filteredData.slice(start, start + pageSize);
+        
+        let filtered = currentFilter === 'all' ? rawData : rawData.filter(d => d.status.toLowerCase() === currentFilter);
 
-        pageData.forEach(d => {
+        filtered.forEach(d => {
+            let dayColor = d.daysLeft <= 7 ? 'var(--danger)' : 'var(--info)';
+            let statusColor = d.status === 'ACTIVE' ? 'var(--success)' : (d.status === 'BLOCKED' ? 'var(--danger)' : 'var(--warning)');
+
             tbody.innerHTML += `
                 <tr>
                     <td style="font-family:monospace; color:#fff">${d.key}</td>
                     <td>${d.name}</td>
-                    <td style="color:${d.remain > 0 ? 'var(--danger)' : 'var(--success)'}">${d.remain.toLocaleString()}</td>
-                    <td><span style="color:${d.status=='ACTIVE'?'var(--success)':'var(--warning)'}">${d.status}</span></td>
-                    <td><button onclick="openEditModal('${d.key}')" style="background:transparent; border:1px solid #333; color:#fff; cursor:pointer; border-radius:4px;">⚙️</button></td>
+                    <td style="color:${dayColor}; font-weight:bold">${d.daysLeft > 0 ? d.daysLeft : 'منتهي'}</td>
+                    <td><span class="status-pill" style="border:1px solid ${statusColor}; color:${statusColor}">${d.status}</span></td>
+                    <td><button onclick="openEditModal('${d.key}')" style="background:transparent; border:1px solid #333; color:#fff; cursor:pointer; padding:2px 8px; border-radius:4px;">⚙️</button></td>
                 </tr>
             `;
         });
-
-        document.getElementById('pageInfo').innerText = `صفحة ${currentPage} من ${Math.ceil(filteredData.length / pageSize) || 1}`;
-        document.getElementById('prevBtn').disabled = (currentPage === 1);
-        document.getElementById('nextBtn').disabled = (currentPage * pageSize >= filteredData.length);
     }
 
-    function changePage(dir) { currentPage += dir; renderTable(); }
-
-    // 3. إدارة الإعدادات
-    function saveSystemSettings() {
-        const settings = {
-            name: document.getElementById('set-company-name').value,
-            logo: document.getElementById('set-logo-url').value,
-            footer: document.getElementById('set-invoice-footer').value
-        };
-        db.ref('system_settings').set(settings).then(() => alert("✅ تم حفظ الإعدادات"));
-    }
-
-    function loadSettings() {
-        db.ref('system_settings').on('value', (snap) => {
-            const s = snap.val();
-            if(s) {
-                document.getElementById('set-company-name').value = s.name || '';
-                document.getElementById('set-logo-url').value = s.logo || '';
-                document.getElementById('set-invoice-footer').value = s.footer || '';
-                document.getElementById('main-logo').innerText = s.name || "OMNIX ERP";
-            }
-        });
-    }
-
-    // 4. إدارة المفاتيح
     function openEditModal(key) {
         const d = rawData.find(x => x.key === key);
         document.getElementById('f-key').value = key;
@@ -246,18 +195,41 @@
         document.getElementById('f-price').value = d.price;
         document.getElementById('f-paid').value = d.paid;
         document.getElementById('f-status').value = d.status;
+        
+        if(d.expiry) {
+            document.getElementById('f-expiry').value = d.expiry.split('T')[0];
+        }
+        
         document.getElementById('editModal').style.display = 'block';
     }
 
     function saveKeyData() {
         const key = document.getElementById('f-key').value;
+        const expiry = document.getElementById('f-expiry').value;
+        
         db.ref('keys/' + key).update({
             name: document.getElementById('f-name').value,
             total_price: document.getElementById('f-price').value,
             paid_amount: document.getElementById('f-paid').value,
             status: document.getElementById('f-status').value,
-            expiryDate: new Date(Date.now() + 31536000000).toISOString()
-        }).then(() => { document.getElementById('editModal').style.display = 'none'; });
+            expiryDate: expiry ? new Date(expiry).toISOString() : null
+        }).then(() => closeModal());
+    }
+
+    function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+    function setTab(tab, el) {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        
+        if(tab === 'finance') {
+            document.getElementById('section-finance').classList.add('active');
+        } else {
+            document.getElementById('section-data').classList.add('active');
+            currentFilter = tab;
+            renderTable();
+        }
     }
 
     function updateUI(s) {
@@ -267,10 +239,9 @@
         document.getElementById('st-debt').innerText = s.debt.toLocaleString();
         document.getElementById('f-sales').innerText = s.sales.toLocaleString() + " IQD";
         document.getElementById('f-paid').innerText = s.paid.toLocaleString() + " IQD";
-        document.getElementById('f-debt-total').innerText = (s.sales - s.paid).toLocaleString() + " IQD";
+        document.getElementById('f-debt-total').innerText = s.debt.toLocaleString() + " IQD";
     }
 
-    loadSettings();
     loadAllData();
 </script>
 </body>
