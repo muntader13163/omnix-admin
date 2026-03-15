@@ -88,10 +88,57 @@
         .btn-copy { color: var(--accent); cursor: pointer; margin-right: 10px; transition: 0.2s; }
         .btn-copy:hover { transform: scale(1.2); filter: drop-shadow(0 0 5px var(--accent)); }
 
+        /* Actions Button & Dropdown */
+        .actions-wrap { position: relative; }
+        .btn-actions {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: var(--accent); cursor: pointer; padding: 8px 12px; border-radius: 10px;
+            transition: 0.2s; font-size: 14px;
+        }
+        .btn-actions:hover { background: rgba(0,242,255,0.15); box-shadow: 0 0 12px rgba(0,242,255,0.2); }
+        .actions-dropdown {
+            position: absolute; left: 0; top: 100%; margin-top: 6px; min-width: 180px;
+            background: #0f1115; border: 1px solid var(--border); border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 100;
+            opacity: 0; visibility: hidden; transform: translateY(-8px);
+            transition: 0.2s ease;
+        }
+        .actions-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .actions-dropdown button {
+            width: 100%; padding: 12px 16px; text-align: right; border: none; background: none;
+            color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600;
+            display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+            transition: 0.15s; font-family: inherit;
+        }
+        .actions-dropdown button:hover { background: rgba(0,242,255,0.1); color: var(--accent); }
+        .actions-dropdown button i { width: 18px; text-align: center; }
+        .actions-dropdown button.danger:hover { background: rgba(255,71,87,0.15); color: #ff4757; }
+
+        /* Loading */
+        .table-loading { padding: 40px; text-align: center; color: #8892b0; }
+        .table-loading .spinner { width: 40px; height: 40px; margin: 0 auto 15px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .skeleton-row { display: flex; gap: 10px; padding: 14px 15px; border-bottom: 1px solid var(--border); }
+        .skeleton { height: 16px; background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: skeleton 1.2s ease-in-out infinite; border-radius: 6px; }
+        @keyframes skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Modal */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: 0.25s; }
+        .modal-backdrop.show { opacity: 1; visibility: visible; }
+        .modal-box { background: #0f1115; border: 1px solid var(--border); border-radius: 20px; max-width: 420px; width: 100%; padding: 24px; transform: scale(0.95); transition: 0.25s; }
+        .modal-backdrop.show .modal-box { transform: scale(1); }
+        .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; color: #fff; }
+        .modal-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .modal-row span:first-child { color: #8892b0; } .modal-row span:last-child { font-weight: 600; }
+        .modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-actions button { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+        .btn-modal-close { background: var(--border); color: var(--text); }
+        .btn-modal-primary { background: var(--accent); color: #000; }
+
         #toast { 
             position: fixed; bottom: 30px; right: 30px; background: var(--accent); color: #000;
             padding: 12px 25px; border-radius: 12px; font-weight: 800; transform: translateY(100px); 
-            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; z-index: 300;
         }
         #toast.show { transform: translateY(0); opacity: 1; }
     </style>
@@ -135,8 +182,19 @@
 
     <div id="toast">تم النسخ بنجاح!</div>
 
+    <!-- Modal تفاصيل المفتاح -->
+    <div class="modal-backdrop" id="detailModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-box">
+            <div class="modal-title"><i class="fas fa-key" style="margin-left:8px;color:var(--accent)"></i> تفاصيل الترخيص</div>
+            <div id="modalContent"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-close" onclick="closeModal()">إغلاق</button>
+                <button type="button" class="btn-modal-primary" id="modalCopyBtn"><i class="far fa-copy" style="margin-left:6px"></i> نسخ المفتاح</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyDNdDeZIPBg6t-hI4lSOlxgGnOa0AXpJxI",
             databaseURL: "https://omnix-license-system-default-rtdb.firebaseio.com",
@@ -145,58 +203,172 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function copy(text) {
-            navigator.clipboard.writeText(text);
+        let currentFilter = 'all';
+        let keysCache = {};
+        let openDropdownId = null;
+
+        function showToast(msg) {
             const t = document.getElementById('toast');
+            t.textContent = msg || 'تم بنجاح!';
             t.className = 'show';
-            setTimeout(() => t.className = '', 2500);
+            setTimeout(() => { t.className = ''; }, 2500);
         }
 
-        function loadData(filter = 'all') {
-            db.ref('keys').on('value', snap => {
-                const data = snap.val();
-                let html = '';
-                let stats = { total: 0, active: 0, avail: 0, debt: 0 };
-
-                for (let id in data) {
-                    const k = data[id];
-                    const isObj = typeof k === 'object';
-                    const status = isObj ? k.status : k;
-                    const name = isObj ? (k.name || 'غير مخصص') : 'غير مخصص';
-                    
-                    stats.total++;
-                    if(status === 'ACTIVE') stats.active++;
-                    if(status === 'AVAILABLE') stats.avail++;
-
-                    if (filter !== 'all' && status !== filter) continue;
-
-                    html += `
-                        <tr>
-                            <td style="font-family:monospace; color:var(--accent)">
-                                <i class="far fa-copy btn-copy" onclick="copy('${id}')"></i>${id}
-                            </td>
-                            <td>${name}</td>
-                            <td><span class="status ${status === 'ACTIVE' ? 'status-active' : 'status-blocked'}">${status === 'ACTIVE' ? 'نشط' : 'متاح'}</span></td>
-                            <td>${isObj && k.activationDate ? k.activationDate.split('T')[0] : '-'}</td>
-                            <td style="font-weight:800">${isObj && k.expiryDate ? calculateDays(k.expiryDate) : '-'} يوم</td>
-                            <td><button style="background:none; border:none; color:#8892b0; cursor:pointer"><i class="fas fa-ellipsis-v"></i></button></td>
-                        </tr>
-                    `;
-                }
-                document.getElementById('keyTable').innerHTML = html;
-                document.getElementById('count-total').innerText = stats.total;
-                document.getElementById('count-active').innerText = stats.active;
-                document.getElementById('count-avail').innerText = stats.avail;
-            });
+        function copy(text) {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => showToast('تم النسخ بنجاح!'));
         }
 
         function calculateDays(expiry) {
+            if (!expiry) return '-';
             const diff = new Date(expiry) - new Date();
             const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
             return days > 0 ? days : 0;
         }
 
-        loadData();
+        function toggleActionsDropdown(keyId) {
+            if (openDropdownId === keyId) {
+                openDropdownId = null;
+                document.querySelectorAll('.actions-dropdown.show').forEach(el => el.classList.remove('show'));
+                return;
+            }
+            document.querySelectorAll('.actions-dropdown.show').forEach(el => el.classList.remove('show'));
+            const dd = document.getElementById('dd-' + keyId);
+            if (dd) { dd.classList.add('show'); openDropdownId = keyId; }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (openDropdownId && !e.target.closest('.actions-wrap')) {
+                document.querySelectorAll('.actions-dropdown.show').forEach(el => el.classList.remove('show'));
+                openDropdownId = null;
+            }
+        });
+
+        function openDetailModal(keyId) {
+            const k = keysCache[keyId];
+            const isObj = k && typeof k === 'object';
+            const name = isObj ? (k.name || 'غير مخصص') : 'غير مخصص';
+            const status = isObj ? k.status : (k || '');
+            const activationDate = isObj && k.activationDate ? k.activationDate.split('T')[0] : '-';
+            const expiryDate = isObj && k.expiryDate ? k.expiryDate.split('T')[0] : '-';
+            const daysLeft = isObj && k.expiryDate ? calculateDays(k.expiryDate) : '-';
+            const debt = isObj && k.debt != null ? Number(k.debt) : 0;
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="modal-row"><span>المفتاح السلسلي</span><span style="font-family:monospace;color:var(--accent)">${keyId}</span></div>
+                <div class="modal-row"><span>العميل</span><span>${name}</span></div>
+                <div class="modal-row"><span>الحالة</span><span class="status ${status === 'ACTIVE' ? 'status-active' : 'status-blocked'}">${status === 'ACTIVE' ? 'نشط' : 'متاح'}</span></div>
+                <div class="modal-row"><span>تاريخ التفعيل</span><span>${activationDate}</span></div>
+                <div class="modal-row"><span>تاريخ الانتهاء</span><span>${expiryDate}</span></div>
+                <div class="modal-row"><span>المتبقي</span><span>${daysLeft} يوم</span></div>
+                ${debt > 0 ? `<div class="modal-row"><span>الدين (IQD)</span><span style="color:#ff4757">${debt.toLocaleString()}</span></div>` : ''}
+            `;
+            document.getElementById('modalCopyBtn').onclick = function() { copy(keyId); closeModal(); showToast('تم النسخ بنجاح!'); };
+            document.getElementById('detailModal').classList.add('show');
+            toggleActionsDropdown(keyId);
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        function deactivateKey(keyId) {
+            if (!confirm('هل تريد إلغاء تفعيل هذا الترخيص؟')) return;
+            toggleActionsDropdown(keyId);
+            db.ref('keys/' + keyId).update({ status: 'AVAILABLE', name: null, activationDate: null, expiryDate: null }).then(() => {
+                showToast('تم إلغاء التفعيل');
+            }).catch(() => showToast('حدث خطأ'));
+        }
+
+        function extendKey(keyId) {
+            const days = prompt('كم يوم تريد إضافة؟', '30');
+            if (days == null || !/^\d+$/.test(days)) return;
+            toggleActionsDropdown(keyId);
+            const k = keysCache[keyId];
+            const base = (k && k.expiryDate) ? new Date(k.expiryDate) : new Date();
+            const newExpiry = new Date(base);
+            newExpiry.setDate(newExpiry.getDate() + parseInt(days, 10));
+            db.ref('keys/' + keyId).update({ expiryDate: newExpiry.toISOString() }).then(() => {
+                showToast('تم تمديد الترخيص');
+            }).catch(() => showToast('حدث خطأ'));
+        }
+
+        function renderTable(data, filter) {
+            keysCache = data || {};
+            let html = '';
+            let stats = { total: 0, active: 0, avail: 0, debt: 0 };
+            if (!data) {
+                document.getElementById('keyTable').innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div>جاري تحميل البيانات...</td></tr>';
+                return;
+            }
+            for (let id in data) {
+                const k = data[id];
+                const isObj = typeof k === 'object';
+                const status = isObj ? k.status : k;
+                const name = isObj ? (k.name || 'غير مخصص') : 'غير مخصص';
+                stats.total++;
+                if (status === 'ACTIVE') stats.active++;
+                if (status === 'AVAILABLE') stats.avail++;
+                if (isObj && k.debt != null) stats.debt += Number(k.debt);
+                if (filter !== 'all' && status !== filter) continue;
+
+                const daysVal = isObj && k.expiryDate ? calculateDays(k.expiryDate) : '-';
+                html += `
+                    <tr>
+                        <td style="font-family:monospace; color:var(--accent)">
+                            <i class="far fa-copy btn-copy" onclick="copy('${id}')" title="نسخ"></i>${id}
+                        </td>
+                        <td>${name}</td>
+                        <td><span class="status ${status === 'ACTIVE' ? 'status-active' : 'status-blocked'}">${status === 'ACTIVE' ? 'نشط' : 'متاح'}</span></td>
+                        <td>${isObj && k.activationDate ? k.activationDate.split('T')[0] : '-'}</td>
+                        <td style="font-weight:800">${daysVal} ${daysVal !== '-' ? 'يوم' : ''}</td>
+                        <td>
+                            <div class="actions-wrap">
+                                <button type="button" class="btn-actions" onclick="toggleActionsDropdown('${id}')" title="إجراءات"><i class="fas fa-ellipsis-v"></i></button>
+                                <div class="actions-dropdown" id="dd-${id}">
+                                    <button type="button" onclick="copy('${id}'); toggleActionsDropdown('${id}'); showToast('تم النسخ');"><i class="far fa-copy"></i> نسخ المفتاح</button>
+                                    <button type="button" onclick="openDetailModal('${id}')"><i class="fas fa-info-circle"></i> تفاصيل</button>
+                                    ${status === 'ACTIVE' ? `<button type="button" onclick="extendKey('${id}')"><i class="fas fa-calendar-plus"></i> تمديد</button><button type="button" class="danger" onclick="deactivateKey('${id}')"><i class="fas fa-ban"></i> إلغاء التفعيل</button>` : ''}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            document.getElementById('keyTable').innerHTML = html || '<tr><td colspan="6" class="table-loading">لا توجد بيانات</td></tr>';
+            document.getElementById('count-total').innerText = stats.total;
+            document.getElementById('count-active').innerText = stats.active;
+            document.getElementById('count-avail').innerText = stats.avail;
+            document.getElementById('count-debt').innerText = stats.debt > 0 ? stats.debt.toLocaleString() : '0';
+        }
+
+        function loadData(filter) {
+            currentFilter = filter || 'all';
+            const tbody = document.getElementById('keyTable');
+
+            if (!window._keysListener) {
+                tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div>جاري تحميل البيانات...</td></tr>';
+                window._keysListener = true;
+                db.ref('keys').on('value', snap => {
+                    const val = snap.val();
+                    if (val !== undefined && val !== null) renderTable(val, currentFilter);
+                    else tbody.innerHTML = '<tr><td colspan="6" class="table-loading">لا توجد بيانات</td></tr>';
+                }, err => {
+                    tbody.innerHTML = '<tr><td colspan="6" class="table-loading">فشل تحميل البيانات</td></tr>';
+                });
+            } else {
+                renderTable(keysCache, currentFilter);
+            }
+        }
+
+        document.querySelectorAll('.nav-link').forEach((el, i) => {
+            if (i < 3) el.onclick = function() {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                loadData(i === 0 ? 'all' : (i === 1 ? 'ACTIVE' : 'AVAILABLE'));
+            };
+        });
+        loadData('all');
     </script>
 </body>
 </html>
