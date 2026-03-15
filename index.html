@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMNIX ERP | Dashboard</title>
+    <title>Omnix SwiftScan | لوحة التحكم</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -83,6 +83,10 @@
         .status { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
         .status-active { background: rgba(0, 255, 157, 0.1); color: #00ff9d; border: 1px solid rgba(0, 255, 157, 0.2); }
         .status-blocked { background: rgba(255, 71, 87, 0.1); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.2); }
+        .status-suspended { background: rgba(255, 165, 0, 0.15); color: #ffa500; border: 1px solid rgba(255, 165, 0, 0.3); }
+        .status-exception { background: rgba(138, 43, 226, 0.15); color: #b388ff; border: 1px solid rgba(138, 43, 226, 0.3); }
+        .badge-exception { margin-right: 6px; font-size: 10px; padding: 2px 8px; border-radius: 10px; background: rgba(138, 43, 226, 0.2); color: #b388ff; }
+        .actions-dropdown button.warning:hover { background: rgba(255, 165, 0, 0.15); color: #ffa500; }
 
         /* Copy Button Icon */
         .btn-copy { color: var(--accent); cursor: pointer; margin-right: 10px; transition: 0.2s; }
@@ -97,7 +101,7 @@
         }
         .btn-actions:hover { background: rgba(0,242,255,0.15); box-shadow: 0 0 12px rgba(0,242,255,0.2); }
         .actions-dropdown {
-            position: absolute; left: 0; top: 100%; margin-top: 6px; min-width: 180px;
+            position: absolute; left: 0; top: 100%; margin-top: 6px; min-width: 200px;
             background: #0f1115; border: 1px solid var(--border); border-radius: 12px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 100;
             opacity: 0; visibility: hidden; transform: translateY(-8px);
@@ -135,6 +139,33 @@
         .btn-modal-close { background: var(--border); color: var(--text); }
         .btn-modal-primary { background: var(--accent); color: #000; }
 
+        /* Views */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        .toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .search-box { background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; min-width: 220px; color: var(--text); font-size: 13px; }
+        .search-box::placeholder { color: #8892b0; }
+        .btn { padding: 10px 18px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { box-shadow: 0 0 20px rgba(0,242,255,0.4); }
+        .btn-ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: rgba(0,242,255,0.1); color: var(--accent); }
+        .settings-grid { max-width: 520px; display: grid; gap: 16px; }
+        .settings-grid label { display: block; font-size: 12px; color: #8892b0; margin-bottom: 6px; font-weight: 600; }
+        .settings-grid input, .settings-grid textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; }
+        .settings-grid textarea { min-height: 80px; resize: vertical; }
+        .finance-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .finance-summary .card { padding: 16px; }
+        .type-income { color: #00ff9d; }
+        .type-expense { color: #ff4757; }
+        /* Invoice print */
+        .invoice-print { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            .invoice-print, .invoice-print * { visibility: visible; }
+            .invoice-print { position: fixed; left: 0; top: 0; width: 100%; background: #fff; color: #111; padding: 24px; display: block !important; }
+            .no-print { display: none !important; }
+        }
         #toast { 
             position: fixed; bottom: 30px; right: 30px; background: var(--accent); color: #000;
             padding: 12px 25px; border-radius: 12px; font-weight: 800; transform: translateY(100px); 
@@ -146,37 +177,88 @@
 <body>
 
     <div class="sidebar">
-        <div class="brand-box"><div class="brand-name">OMNIX <span style="color:var(--accent)">ERP</span></div></div>
-        <div class="nav-link active" onclick="loadData('all')"><i class="fas fa-layer-group"></i> كافة المفاتيح</div>
-        <div class="nav-link" onclick="loadData('ACTIVE')"><i class="fas fa-bolt"></i> التراخيص النشطة</div>
-        <div class="nav-link" onclick="loadData('AVAILABLE')"><i class="fas fa-shopping-cart"></i> متاحة للبيع</div>
+        <div class="brand-box"><div class="brand-name">Omnix <span style="color:var(--accent)">SwiftScan</span></div></div>
+        <div class="nav-link active" data-view="keys" data-filter="all"><i class="fas fa-layer-group"></i> كافة المفاتيح</div>
+        <div class="nav-link" data-view="keys" data-filter="ACTIVE"><i class="fas fa-bolt"></i> التراخيص النشطة</div>
+        <div class="nav-link" data-view="keys" data-filter="AVAILABLE"><i class="fas fa-shopping-cart"></i> متاحة للبيع</div>
+        <div class="nav-link" data-view="keys" data-filter="SUSPENDED"><i class="fas fa-pause-circle"></i> موقوفة</div>
         <div style="margin-top: auto;"></div>
-        <div class="nav-link"><i class="fas fa-chart-pie"></i> السجل المالي</div>
-        <div class="nav-link"><i class="fas fa-cog"></i> إعدادات النظام</div>
+        <div class="nav-link" data-view="finance"><i class="fas fa-chart-pie"></i> السجل المالي</div>
+        <div class="nav-link" data-view="settings"><i class="fas fa-cog"></i> إعدادات النظام</div>
     </div>
 
     <div class="main-content">
-        <div class="stats-row">
-            <div class="card"><div class="card-label">إجمالي التراخيص</div><div class="card-value" id="count-total">0</div></div>
-            <div class="card"><div class="card-label">نشطة حالياً</div><div class="card-value" id="count-active" style="color:#00ff9d">0</div></div>
-            <div class="card"><div class="card-label">متاحة</div><div class="card-value" id="count-avail" style="color:var(--accent)">0</div></div>
-            <div class="card"><div class="card-label">الديون (IQD)</div><div class="card-value" id="count-debt" style="color:#ff4757">0</div></div>
+        <!-- عرض المفاتيح والتراخيص -->
+        <div id="view-keys" class="view-section active">
+            <div class="stats-row">
+                <div class="card"><div class="card-label">إجمالي التراخيص</div><div class="card-value" id="count-total">0</div></div>
+                <div class="card"><div class="card-label">نشطة حالياً</div><div class="card-value" id="count-active" style="color:#00ff9d">0</div></div>
+                <div class="card"><div class="card-label">متاحة</div><div class="card-value" id="count-avail" style="color:var(--accent)">0</div></div>
+                <div class="card"><div class="card-label">الديون (IQD)</div><div class="card-value" id="count-debt" style="color:#ff4757">0</div></div>
+            </div>
+            <div class="toolbar no-print">
+                <input type="text" class="search-box" id="searchKeys" placeholder="بحث بالمفتاح أو اسم العميل..." oninput="applySearch()">
+                <button type="button" class="btn btn-ghost" onclick="exportKeysCsv()"><i class="fas fa-file-export"></i> تصدير CSV</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المفتاح السلسلي</th>
+                            <th>العميل</th>
+                            <th>الحالة</th>
+                            <th>تاريخ التفعيل</th>
+                            <th>المتبقي</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="keyTable"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>المفتاح السلسلي</th>
-                        <th>العميل</th>
-                        <th>الحالة</th>
-                        <th>تاريخ التفعيل</th>
-                        <th>المتبقي</th>
-                        <th>إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="keyTable"></tbody>
-            </table>
+        <!-- السجل المالي -->
+        <div id="view-finance" class="view-section">
+            <div class="finance-summary">
+                <div class="card"><div class="card-label">إجمالي الإيرادات</div><div class="card-value type-income" id="finance-income">0</div></div>
+                <div class="card"><div class="card-label">إجمالي المدفوعات</div><div class="card-value type-expense" id="finance-expense">0</div></div>
+                <div class="card"><div class="card-label">الرصيد</div><div class="card-value" id="finance-balance">0</div></div>
+            </div>
+            <div class="toolbar">
+                <button type="button" class="btn btn-primary" onclick="openAddTransactionModal()"><i class="fas fa-plus"></i> إضافة حركة</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>النوع</th>
+                            <th>الوصف / العميل</th>
+                            <th>المبلغ (IQD)</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financeTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- إعدادات النظام -->
+        <div id="view-settings" class="view-section">
+            <div class="card" style="max-width: 560px; padding: 28px;">
+                <div class="modal-title" style="margin-bottom: 20px;"><i class="fas fa-cog" style="margin-left:8px;color:var(--accent)"></i> إعدادات الفاتورة والنظام</div>
+                <div class="settings-grid">
+                    <div><label>اسم الشركة / النظام</label><input type="text" id="setCompanyName" placeholder="Omnix SwiftScan"></div>
+                    <div><label>العنوان</label><input type="text" id="setAddress" placeholder="العنوان الكامل"></div>
+                    <div><label>الهاتف</label><input type="text" id="setPhone" placeholder="07XX XXX XXXX"></div>
+                    <div><label>عملة الفاتورة</label><input type="text" id="setCurrency" placeholder="IQD - دينار عراقي"></div>
+                    <div><label>رقم الفاتورة (بادئة)</label><input type="text" id="setInvoicePrefix" placeholder="INV-"></div>
+                    <div><label>نص تذييل الفاتورة</label><textarea id="setFooter" placeholder="شكراً لتعاملكم معنا..."></textarea></div>
+                </div>
+                <div class="modal-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> حفظ الإعدادات</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -189,10 +271,36 @@
             <div id="modalContent"></div>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-close" onclick="closeModal()">إغلاق</button>
+                <button type="button" class="btn btn-ghost" onclick="printInvoiceForModalKey()"><i class="fas fa-print"></i> طباعة فاتورة</button>
                 <button type="button" class="btn-modal-primary" id="modalCopyBtn"><i class="far fa-copy" style="margin-left:6px"></i> نسخ المفتاح</button>
             </div>
         </div>
     </div>
+
+    <!-- Modal إضافة حركة مالية -->
+    <div class="modal-backdrop" id="addTransactionModal" onclick="if(event.target===this) closeAddTransactionModal()">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-title"><i class="fas fa-plus-circle" style="margin-left:8px;color:var(--accent)"></i> إضافة حركة مالية</div>
+            <div class="settings-grid">
+                <div><label>نوع الحركة</label>
+                    <select id="txType" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:14px;">
+                        <option value="income">إيراد (بيع / دفعة)</option>
+                        <option value="expense">مصروف</option>
+                    </select>
+                </div>
+                <div><label>المبلغ (IQD)</label><input type="number" id="txAmount" placeholder="0" min="0"></div>
+                <div><label>الوصف / العميل</label><input type="text" id="txDesc" placeholder="اسم العميل أو وصف الحركة"></div>
+                <div><label>ملاحظات</label><input type="text" id="txNote" placeholder="اختياري"></div>
+            </div>
+            <div class="modal-actions" style="margin-top:20px;">
+                <button type="button" class="btn-modal-close" onclick="closeAddTransactionModal()">إلغاء</button>
+                <button type="button" class="btn-modal-primary" onclick="submitTransaction()">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- منطقة طباعة الفاتورة (مخفاة وتُعرض للطباعة فقط) -->
+    <div id="invoicePrintArea" class="invoice-print"></div>
 
     <script>
         const firebaseConfig = {
@@ -206,6 +314,8 @@
         let currentFilter = 'all';
         let keysCache = {};
         let openDropdownId = null;
+        let currentView = 'keys';
+        let searchQuery = '';
 
         function showToast(msg) {
             const t = document.getElementById('toast');
@@ -244,11 +354,18 @@
             }
         });
 
+        function getStatusInfo(status) {
+            const map = { ACTIVE: ['نشط', 'status-active'], AVAILABLE: ['متاح', 'status-blocked'], SUSPENDED: ['موقوف', 'status-suspended'] };
+            return map[status] || ['متاح', 'status-blocked'];
+        }
+
         function openDetailModal(keyId) {
             const k = keysCache[keyId];
             const isObj = k && typeof k === 'object';
             const name = isObj ? (k.name || 'غير مخصص') : 'غير مخصص';
             const status = isObj ? k.status : (k || '');
+            const [statusLabel, statusClass] = getStatusInfo(status);
+            const isException = isObj && k.exception === true;
             const activationDate = isObj && k.activationDate ? k.activationDate.split('T')[0] : '-';
             const expiryDate = isObj && k.expiryDate ? k.expiryDate.split('T')[0] : '-';
             const daysLeft = isObj && k.expiryDate ? calculateDays(k.expiryDate) : '-';
@@ -257,7 +374,7 @@
             document.getElementById('modalContent').innerHTML = `
                 <div class="modal-row"><span>المفتاح السلسلي</span><span style="font-family:monospace;color:var(--accent)">${keyId}</span></div>
                 <div class="modal-row"><span>العميل</span><span>${name}</span></div>
-                <div class="modal-row"><span>الحالة</span><span class="status ${status === 'ACTIVE' ? 'status-active' : 'status-blocked'}">${status === 'ACTIVE' ? 'نشط' : 'متاح'}</span></div>
+                <div class="modal-row"><span>الحالة</span><span class="status ${statusClass}">${statusLabel}</span>${isException ? ' <span class="badge-exception">مستثنى</span>' : ''}</div>
                 <div class="modal-row"><span>تاريخ التفعيل</span><span>${activationDate}</span></div>
                 <div class="modal-row"><span>تاريخ الانتهاء</span><span>${expiryDate}</span></div>
                 <div class="modal-row"><span>المتبقي</span><span>${daysLeft} يوم</span></div>
@@ -293,6 +410,24 @@
             }).catch(() => showToast('حدث خطأ'));
         }
 
+        function suspendKey(keyId) {
+            if (!confirm('هل تريد إيقاف هذا الترخيص مؤقتاً؟')) return;
+            toggleActionsDropdown(keyId);
+            db.ref('keys/' + keyId).update({ status: 'SUSPENDED' }).then(() => showToast('تم إيقاف الترخيص')).catch(() => showToast('حدث خطأ'));
+        }
+
+        function resumeKey(keyId) {
+            toggleActionsDropdown(keyId);
+            db.ref('keys/' + keyId).update({ status: 'ACTIVE' }).then(() => showToast('تم استئناف الترخيص')).catch(() => showToast('حدث خطأ'));
+        }
+
+        function setExceptionKey(keyId, value) {
+            toggleActionsDropdown(keyId);
+            db.ref('keys/' + keyId).update({ exception: value === true }).then(() => {
+                showToast(value ? 'تم وضع الترخيص كمستثنى' : 'تم إلغاء الاستثناء');
+            }).catch(() => showToast('حدث خطأ'));
+        }
+
         function renderTable(data, filter) {
             keysCache = data || {};
             let html = '';
@@ -306,30 +441,48 @@
                 const isObj = typeof k === 'object';
                 const status = isObj ? k.status : k;
                 const name = isObj ? (k.name || 'غير مخصص') : 'غير مخصص';
+                const isException = isObj && k.exception === true;
+                const [statusLabel, statusClass] = getStatusInfo(status);
                 stats.total++;
                 if (status === 'ACTIVE') stats.active++;
                 if (status === 'AVAILABLE') stats.avail++;
                 if (isObj && k.debt != null) stats.debt += Number(k.debt);
                 if (filter !== 'all' && status !== filter) continue;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const nameStr = isObj ? (k.name || '') : '';
+                    if (!id.toLowerCase().includes(q) && !nameStr.toLowerCase().includes(q)) continue;
+                }
 
                 const daysVal = isObj && k.expiryDate ? calculateDays(k.expiryDate) : '-';
+                let actionBtns = '';
+                actionBtns += '<button type="button" onclick="copy(\'' + id + '\'); toggleActionsDropdown(\'' + id + '\'); showToast(\'تم النسخ\');"><i class="far fa-copy"></i> نسخ المفتاح</button>';
+                actionBtns += '<button type="button" onclick="openDetailModal(\'' + id + '\')"><i class="fas fa-info-circle"></i> تفاصيل</button>';
+                actionBtns += '<button type="button" onclick="printInvoice(\'' + id + '\'); toggleActionsDropdown(\'' + id + '\');"><i class="fas fa-print"></i> طباعة فاتورة</button>';
+                if (status === 'ACTIVE') {
+                    actionBtns += '<button type="button" onclick="extendKey(\'' + id + '\')"><i class="fas fa-calendar-plus"></i> تمديد</button>';
+                    actionBtns += '<button type="button" class="warning" onclick="suspendKey(\'' + id + '\')"><i class="fas fa-pause-circle"></i> إيقاف</button>';
+                    actionBtns += isException ? '<button type="button" onclick="setExceptionKey(\'' + id + '\', false)"><i class="fas fa-times-circle"></i> إلغاء الاستثناء</button>' : '<button type="button" onclick="setExceptionKey(\'' + id + '\', true)"><i class="fas fa-star"></i> استثناء</button>';
+                    actionBtns += '<button type="button" class="danger" onclick="deactivateKey(\'' + id + '\')"><i class="fas fa-ban"></i> إلغاء التفعيل</button>';
+                } else if (status === 'SUSPENDED') {
+                    actionBtns += '<button type="button" onclick="resumeKey(\'' + id + '\')"><i class="fas fa-play-circle"></i> استئناف</button>';
+                    actionBtns += isException ? '<button type="button" onclick="setExceptionKey(\'' + id + '\', false)"><i class="fas fa-times-circle"></i> إلغاء الاستثناء</button>' : '<button type="button" onclick="setExceptionKey(\'' + id + '\', true)"><i class="fas fa-star"></i> استثناء</button>';
+                } else {
+                    actionBtns += isException ? '<button type="button" onclick="setExceptionKey(\'' + id + '\', false)"><i class="fas fa-times-circle"></i> إلغاء الاستثناء</button>' : '<button type="button" onclick="setExceptionKey(\'' + id + '\', true)"><i class="fas fa-star"></i> استثناء</button>';
+                }
                 html += `
                     <tr>
                         <td style="font-family:monospace; color:var(--accent)">
                             <i class="far fa-copy btn-copy" onclick="copy('${id}')" title="نسخ"></i>${id}
                         </td>
                         <td>${name}</td>
-                        <td><span class="status ${status === 'ACTIVE' ? 'status-active' : 'status-blocked'}">${status === 'ACTIVE' ? 'نشط' : 'متاح'}</span></td>
+                        <td><span class="status ${statusClass}">${statusLabel}</span>${isException ? ' <span class="badge-exception">مستثنى</span>' : ''}</td>
                         <td>${isObj && k.activationDate ? k.activationDate.split('T')[0] : '-'}</td>
                         <td style="font-weight:800">${daysVal} ${daysVal !== '-' ? 'يوم' : ''}</td>
                         <td>
                             <div class="actions-wrap">
                                 <button type="button" class="btn-actions" onclick="toggleActionsDropdown('${id}')" title="إجراءات"><i class="fas fa-ellipsis-v"></i></button>
-                                <div class="actions-dropdown" id="dd-${id}">
-                                    <button type="button" onclick="copy('${id}'); toggleActionsDropdown('${id}'); showToast('تم النسخ');"><i class="far fa-copy"></i> نسخ المفتاح</button>
-                                    <button type="button" onclick="openDetailModal('${id}')"><i class="fas fa-info-circle"></i> تفاصيل</button>
-                                    ${status === 'ACTIVE' ? `<button type="button" onclick="extendKey('${id}')"><i class="fas fa-calendar-plus"></i> تمديد</button><button type="button" class="danger" onclick="deactivateKey('${id}')"><i class="fas fa-ban"></i> إلغاء التفعيل</button>` : ''}
-                                </div>
+                                <div class="actions-dropdown" id="dd-${id}">${actionBtns}</div>
                             </div>
                         </td>
                     </tr>
@@ -361,13 +514,193 @@
             }
         }
 
-        document.querySelectorAll('.nav-link').forEach((el, i) => {
-            if (i < 3) el.onclick = function() {
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-                loadData(i === 0 ? 'all' : (i === 1 ? 'ACTIVE' : 'AVAILABLE'));
+        function switchView(view, filter) {
+            currentView = view;
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const activeNav = document.querySelector('.nav-link[data-view="' + view + '"][data-filter="' + (filter || '') + '"]') || document.querySelector('.nav-link[data-view="' + view + '"]');
+            if (activeNav) activeNav.classList.add('active');
+            if (view === 'keys') {
+                document.getElementById('view-keys').classList.add('active');
+                loadData(filter || 'all');
+            } else if (view === 'finance') {
+                document.getElementById('view-finance').classList.add('active');
+                loadFinance();
+            } else if (view === 'settings') {
+                document.getElementById('view-settings').classList.add('active');
+                loadSettings();
+            }
+        }
+
+        document.querySelectorAll('.nav-link').forEach(el => {
+            el.onclick = function() {
+                const view = this.getAttribute('data-view');
+                const filter = this.getAttribute('data-filter') || '';
+                switchView(view, filter || null);
             };
         });
+
+        function applySearch() {
+            searchQuery = (document.getElementById('searchKeys') || {}).value || '';
+            renderTable(keysCache, currentFilter);
+        }
+
+        function exportKeysCsv() {
+            const rows = [];
+            const data = keysCache;
+            for (let id in data) {
+                const k = data[id];
+                const isObj = typeof k === 'object';
+                const status = isObj ? k.status : k;
+                const name = isObj ? (k.name || '') : '';
+                const act = isObj && k.activationDate ? k.activationDate.split('T')[0] : '';
+                const exp = isObj && k.expiryDate ? k.expiryDate.split('T')[0] : '';
+                if (currentFilter !== 'all' && status !== currentFilter) continue;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    if (!id.toLowerCase().includes(q) && !(name && name.toLowerCase().includes(q))) continue;
+                }
+                rows.push([id, name, status, act, exp].map(c => '"' + String(c).replace(/"/g, '""') + '"').join(','));
+            }
+            const csv = '\uFEFF' + 'المفتاح,العميل,الحالة,تاريخ التفعيل,تاريخ الانتهاء\n' + rows.join('\n');
+            const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'omnix-swiftscan-keys.csv'; a.click();
+            showToast('تم التصدير');
+        }
+
+        // ——— السجل المالي ———
+        function loadFinance() {
+            db.ref('financialLog').on('value', snap => {
+                const val = snap.val();
+                renderFinance(val || {});
+            });
+        }
+
+        function renderFinance(data) {
+            let income = 0, expense = 0;
+            const list = [];
+            for (let id in data) {
+                const t = data[id];
+                const amount = Number(t.amount) || 0;
+                if (t.type === 'income') { income += amount; }
+                else { expense += amount; }
+                list.push({ id, ...t, amount });
+            }
+            list.sort((a, b) => (new Date(b.date || 0) - new Date(a.date || 0)));
+            document.getElementById('finance-income').innerText = income.toLocaleString();
+            document.getElementById('finance-expense').innerText = expense.toLocaleString();
+            document.getElementById('finance-balance').innerText = (income - expense).toLocaleString();
+            const typeLabel = { income: 'إيراد', expense: 'مصروف' };
+            let html = '';
+            list.forEach(t => {
+                html += '<tr><td>' + (t.date ? t.date.split('T')[0] : '-') + '</td><td><span class="status ' + (t.type === 'income' ? 'status-active' : 'status-blocked') + '">' + (typeLabel[t.type] || t.type) + '</span></td><td>' + (t.description || '-') + '</td><td style="font-weight:800">' + t.amount.toLocaleString() + '</td><td>' + (t.note || '-') + '</td></tr>';
+            });
+            document.getElementById('financeTable').innerHTML = html || '<tr><td colspan="5" class="table-loading">لا توجد حركات</td></tr>';
+        }
+
+        function openAddTransactionModal() {
+            document.getElementById('addTransactionModal').classList.add('show');
+            document.getElementById('txAmount').value = '';
+            document.getElementById('txDesc').value = '';
+            document.getElementById('txNote').value = '';
+        }
+        function closeAddTransactionModal() {
+            document.getElementById('addTransactionModal').classList.remove('show');
+        }
+
+        function submitTransaction() {
+            const type = document.getElementById('txType').value;
+            const amount = parseInt(document.getElementById('txAmount').value, 10);
+            const description = document.getElementById('txDesc').value.trim() || 'بدون وصف';
+            const note = document.getElementById('txNote').value.trim();
+            if (!amount || amount <= 0) { showToast('أدخل المبلغ'); return; }
+            db.ref('financialLog').push({ type, amount, description, note, date: new Date().toISOString() }).then(() => {
+                showToast('تمت إضافة الحركة');
+                closeAddTransactionModal();
+            }).catch(() => showToast('حدث خطأ'));
+        }
+
+        // ——— الإعدادات ———
+        function loadSettings() {
+            db.ref('settings').once('value').then(snap => {
+                const s = snap.val() || {};
+                document.getElementById('setCompanyName').value = s.companyName || 'Omnix SwiftScan';
+                document.getElementById('setAddress').value = s.address || '';
+                document.getElementById('setPhone').value = s.phone || '';
+                document.getElementById('setCurrency').value = s.currency || 'IQD - دينار عراقي';
+                document.getElementById('setInvoicePrefix').value = s.invoicePrefix || 'INV-';
+                document.getElementById('setFooter').value = s.footer || '';
+            });
+        }
+
+        function saveSettings() {
+            const o = {
+                companyName: document.getElementById('setCompanyName').value.trim() || 'Omnix SwiftScan',
+                address: document.getElementById('setAddress').value.trim(),
+                phone: document.getElementById('setPhone').value.trim(),
+                currency: document.getElementById('setCurrency').value.trim() || 'IQD',
+                invoicePrefix: document.getElementById('setInvoicePrefix').value.trim() || 'INV-',
+                footer: document.getElementById('setFooter').value.trim()
+            };
+            db.ref('settings').set(o).then(() => showToast('تم حفظ الإعدادات')).catch(() => showToast('حدث خطأ'));
+        }
+
+        // ——— الفاتورة والطباعة ———
+        let settingsCache = {};
+        db.ref('settings').on('value', s => { settingsCache = s.val() || {}; });
+
+        function buildInvoiceHtml(keyId) {
+            const k = keysCache[keyId] || {};
+            const isObj = typeof k === 'object';
+            const name = isObj ? (k.name || 'عميل') : 'عميل';
+            const company = settingsCache.companyName || 'Omnix SwiftScan';
+            const address = settingsCache.address || '';
+            const phone = settingsCache.phone || '';
+            const currency = settingsCache.currency || 'IQD';
+            const prefix = settingsCache.invoicePrefix || 'INV-';
+            const footer = settingsCache.footer || 'شكراً لتعاملكم معنا - Omnix SwiftScan';
+            const invNum = prefix + String(Date.now()).slice(-8);
+            const date = new Date().toLocaleDateString('ar-IQ');
+            const debt = isObj && k.debt != null ? Number(k.debt) : 0;
+            const expiry = isObj && k.expiryDate ? k.expiryDate.split('T')[0] : '-';
+            return '<div style="font-family:Cairo,Arial,sans-serif;max-width:400px;margin:0 auto;padding:24px;color:#1a1a1a;">' +
+                '<div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00f2ff;">' +
+                '<h1 style="margin:0;font-size:22px;color:#0a0a0a;">' + company + '</h1>' +
+                (address ? '<p style="margin:8px 0 0;font-size:12px;color:#444;">' + address + '</p>' : '') +
+                (phone ? '<p style="margin:4px 0 0;font-size:12px;">' + phone + '</p>' : '') +
+                '</div>' +
+                '<table style="width:100%;margin-bottom:20px;font-size:13px;">' +
+                '<tr><td style="color:#666;">رقم الفاتورة</td><td style="text-align:left;font-weight:700;">' + invNum + '</td></tr>' +
+                '<tr><td style="color:#666;">التاريخ</td><td style="text-align:left;">' + date + '</td></tr>' +
+                '<tr><td style="color:#666;">العميل</td><td style="text-align:left;">' + name + '</td></tr>' +
+                '</table>' +
+                '<table style="width:100%;border-collapse:collapse;margin:20px 0;">' +
+                '<thead><tr style="background:#0f1115;color:#00f2ff;"><th style="padding:10px;text-align:right;">البند</th><th style="padding:10px;text-align:left;">القيمة</th></tr></thead>' +
+                '<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">ترخيص SwiftScan</td><td style="padding:10px;font-family:monospace;">' + keyId + '</td></tr>' +
+                '<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">صلاحية حتى</td><td style="padding:10px;">' + expiry + '</td></tr>' +
+                (debt > 0 ? '<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">المبلغ المستحق ' + currency + '</td><td style="padding:10px;font-weight:700;">' + debt.toLocaleString() + '</td></tr>' : '') +
+                '</table>' +
+                '<p style="text-align:center;font-size:11px;color:#666;margin-top:28px;">' + footer + '</p>' +
+                '</div>';
+        }
+
+        function printInvoice(keyId) {
+            const area = document.getElementById('invoicePrintArea');
+            area.innerHTML = buildInvoiceHtml(keyId);
+            area.style.display = 'block';
+            window.print();
+            area.style.display = 'none';
+            area.innerHTML = '';
+        }
+
+        function printInvoiceForModalKey() {
+            const keyId = document.querySelector('#modalContent span[style*="monospace"]');
+            if (keyId) {
+                const id = keyId.textContent.trim();
+                closeModal();
+                setTimeout(() => printInvoice(id), 300);
+            }
+        }
+
         loadData('all');
     </script>
 </body>
